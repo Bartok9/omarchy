@@ -219,9 +219,15 @@ start_screenrecording() {
 stop_screenrecording() {
   pkill -SIGINT -f "^gpu-screen-recorder" # SIGINT required to save video properly
 
-  # Wait a maximum of 5 seconds to finish before hard killing
+  # Wait for the muxer to write the trailer. Five seconds is too short on a
+  # loaded or thermally throttled machine and SIGKILL then truncates the file
+  # (issue #12469). Honour OMARCHY_SCREENRECORD_STOP_TIMEOUT seconds, default 30.
+  local timeout_s=${OMARCHY_SCREENRECORD_STOP_TIMEOUT:-30}
+  [[ $timeout_s =~ ^[0-9]+$ ]] || timeout_s=30
+  ((timeout_s < 1)) && timeout_s=1
   local count=0
-  while pgrep -f "^gpu-screen-recorder" >/dev/null && ((count < 50)); do
+  local max=$((timeout_s * 10))
+  while pgrep -f "^gpu-screen-recorder" >/dev/null && ((count < max)); do
     sleep 0.1
     count=$((count + 1))
   done
