@@ -44,5 +44,14 @@ for format in "${formats[@]}"; do
 done
 find_args+=(")" -printf '%T@\t%p\n')
 
-find "${find_args[@]}" 2>/dev/null | sort -rn | cut -f2- |
+# -L follows a starting point that is itself a symlink (e.g. ~/Videos ->
+# /mnt/storage/Videos). Without it find does not descend, so transcode sees
+# zero files and omarchy-menu-select fails on empty stdin.
+# head caps the payload so a large library cannot exceed MAX_ARG_STRLEN.
+# Temporarily drop pipefail so SIGPIPE from head does not fail the pipeline.
+set +o pipefail
+find -L "${find_args[@]}" 2>/dev/null | sort -rn | cut -f2- | head -n 500 |
   omarchy-menu-select "$label" -- --width 800 --maxheight 500 "$@"
+status=${PIPESTATUS[4]:-$?}
+set -o pipefail
+exit "$status"
