@@ -49,10 +49,12 @@ find_args+=(")" -printf '%T@\t%p\n')
 # zero files and omarchy-menu-select fails on empty stdin.
 # Cap entry count and total path bytes so omarchy-menu-select stays under a
 # single-argument MAX_ARG_STRLEN (~128KiB) after JSON encoding.
+# LC_ALL=C makes awk length() count bytes (not UTF-8 characters). Budget leaves
+# headroom for JSON quotes/escapes and menu-select metadata.
 # Temporarily drop pipefail so SIGPIPE from the consumer does not fail the pipeline.
 set +o pipefail
-find -L "${find_args[@]}" 2>/dev/null | sort -rn | cut -f2- | awk '
-  BEGIN { max_n = 500; max_bytes = 100000; n = 0; bytes = 0 }
+find -L "${find_args[@]}" 2>/dev/null | sort -rn | cut -f2- | LC_ALL=C awk '
+  BEGIN { max_n = 500; max_bytes = 80000; n = 0; bytes = 0 }
   {
     len = length($0) + 1
     if (n >= max_n || bytes + len > max_bytes) exit
