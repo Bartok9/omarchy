@@ -492,7 +492,7 @@ def rpc_request(proc, request_id, method, params=None, timeout=8):
       continue
     if message.get("id") == request_id:
       return message
-  raise TimeoutError(method)
+  raise TimeoutError(f"{method} timed out after {timeout}s")
 
 
 def limit_window(window):

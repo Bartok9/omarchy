@@ -603,3 +603,35 @@ result=$(HOME="$INTERRUPTED_HOME" CODEX_HOME="$INTERRUPTED_HOME/.codex" XDG_CACH
 [[ $(jq -r '.todayTotalTokens' <<<"$result") == "9" ]] ||
   fail "Codex collector does not reuse a snapshot from an interrupted scan" "$result"
 pass "Codex collector does not cache an interrupted opencode scan"
+
+TIMEOUT_HOME=$(mktemp -d)
+trap 'rm -rf "$TEST_HOME" "$PI_HOME" "$TIMEOUT_HOME"' EXIT
+mkdir -p "$TIMEOUT_HOME/.codex/sessions/$(date +%Y/%m/%d)" "$TIMEOUT_HOME/bin"
+cat >"$TIMEOUT_HOME/bin/codex" <<'EOF'
+#!/bin/bash
+while read -r request; do
+  id=$(jq -r '.id // empty' <<<"$request")
+  method=$(jq -r '.method // empty' <<<"$request")
+  case "$method" in
+    initialize)
+      jq -cn --argjson id "$id" '{id: $id, result: {}}'
+      ;;
+    account/read)
+      jq -cn --argjson id "$id" '{id: $id, result: {account: {}}}'
+      ;;
+    account/rateLimits/read)
+      sleep 6
+      ;;
+  esac
+done
+EOF
+chmod +x "$TIMEOUT_HOME/bin/codex"
+
+timeout_result=$(HOME="$TIMEOUT_HOME" CODEX_HOME="$TIMEOUT_HOME/.codex" XDG_DATA_HOME="$TIMEOUT_HOME/.local/share" \
+  PATH="$TIMEOUT_HOME/bin:$PATH" "$ROOT/bin/omarchy-agent-usage-codex")
+
+[[ $(jq -r '.usageStatusText' <<<"$timeout_result") == "Codex limits unavailable" ]] ||
+  fail "Codex collector reports limits unavailable on RPC timeout" "$timeout_result"
+[[ $(jq -r '.authHelpText' <<<"$timeout_result") == "account/rateLimits/read timed out after 4s" ]] ||
+  fail "Codex collector stores a timeout description, not the bare method name" "$timeout_result"
+pass "Codex collector describes rate-limit RPC timeouts"
