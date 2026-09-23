@@ -23,5 +23,5 @@ EOF
 chmod +x "$stub/omarchy-menu-select"
 
 output=$(PATH="$stub:$PATH" "$ROOT/bin/omarchy-menu-file" "Select media" "$link" "webm")
-[[ $output == *"$real/clip.webm"* ]] || fail "menu-file follows a symlink starting point" "$output"
+[[ $output == *"$link/clip.webm"* ]] || fail "menu-file follows a symlink starting point" "$output"
 pass "menu-file follows a symlink starting point"
