@@ -53,9 +53,34 @@ esac
 
 sleep_monitor="$OMARCHY_PATH/bin/omarchy-system-sleep-monitor"
 
-exec systemd-inhibit \
-  --what=sleep \
-  --mode=delay \
-  --who=Omarchy \
-  --why="Lock screen before suspend" \
-  "$sleep_monitor" --inhibited
+# logind rejects a new delay inhibit with EBUSY while a sleep/wake cycle is
+# still settling ("The operation inhibition has been requested for is already
+# running"). Restart=always would otherwise log FAILURE every resume. Retry
+# that specific error until the previous sleep operation has finished.
+inhibit_err=$(mktemp)
+attempt=0
+while true; do
+  systemd-inhibit \
+    --what=sleep \
+    --mode=delay \
+    --who=Omarchy \
+    --why="Lock screen before suspend" \
+    "$sleep_monitor" --inhibited 2>"$inhibit_err"
+  status=$?
+  if (( status == 0 )); then
+    rm -f "$inhibit_err"
+    exit 0
+  fi
+  if ! grep -Fq "already running" "$inhibit_err"; then
+    cat "$inhibit_err" >&2
+    rm -f "$inhibit_err"
+    exit "$status"
+  fi
+  attempt=$((attempt + 1))
+  if (( attempt > 30 )); then
+    cat "$inhibit_err" >&2
+    rm -f "$inhibit_err"
+    exit "$status"
+  fi
+  sleep 0.2
+done
