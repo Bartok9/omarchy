@@ -642,6 +642,8 @@ trap 'rm -rf "$TEST_HOME" "$PI_HOME" "$OPENCODE_HOME" "$CACHE_HOME" "$FRESH_HOME
 mkdir -p "$EOF_HOME/.codex/sessions/$(date +%Y/%m/%d)" "$EOF_HOME/bin"
 cat >"$EOF_HOME/bin/codex" <<'EOF'
 #!/bin/bash
+# Drain one request so the collector's initialize write is not a racey EPIPE.
+read -r _ || true
 exit 0
 EOF
 chmod +x "$EOF_HOME/bin/codex"
