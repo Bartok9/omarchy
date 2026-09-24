@@ -104,7 +104,20 @@ if kill -0 "$producer_pid" 2>/dev/null; then
   fail "sleep monitor cleans up its producer when terminated" "producer still running: $producer_pid"
 fi
 pass "sleep monitor cleans up its producer when terminated"
-# logind can reject a delay inhibit with EBUSY while a sleep/wake is still
+
+# Restore event-emitting dbus-monitor for subsequent inhibit-retry tests (the
+# termination block replaced it with a silent long sleep).
+cat >"$mock_bin/dbus-monitor" <<'SH'
+#!/bin/bash
+
+echo "$$" >"$PRODUCER_PID_FILE"
+printf '   boolean true\n'
+exec sleep 30
+SH
+chmod +x "$mock_bin/dbus-monitor"
+rm -f "$producer_pid_file" "$lock_log"
+
+# logind can reject a delay inhibit while a sleep/wake is still
 # settling. Retry that specific error instead of exiting 1 for systemd.
 cat >"$mock_bin/systemd-inhibit" <<'SH'
 #!/bin/bash
@@ -141,7 +154,7 @@ OMARCHY_PATH="$mock_omarchy" \
   fail "sleep monitor retries an EBUSY delay inhibit" "lock log: $(<"$lock_log" 2>/dev/null || true)"
 pass "sleep monitor retries an EBUSY delay inhibit"
 
-[[ $(<"$inhibit_count") == "3" ]] ||
+[[ $(<"$inhibit_count") == "4" ]] ||
   fail "sleep monitor retries until inhibit succeeds" "attempts: $(<"$inhibit_count")"
 pass "sleep monitor retries until inhibit succeeds"
 
