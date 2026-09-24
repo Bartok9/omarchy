@@ -485,7 +485,7 @@ def rpc_request(proc, request_id, method, params=None, timeout=8):
       continue
     line = proc.stdout.readline()
     if not line:
-      break
+      raise RuntimeError(f"codex app-server exited before answering {method}")
     try:
       message = json.loads(line)
     except Exception:

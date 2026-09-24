@@ -605,7 +605,7 @@ result=$(HOME="$INTERRUPTED_HOME" CODEX_HOME="$INTERRUPTED_HOME/.codex" XDG_CACH
 pass "Codex collector does not cache an interrupted opencode scan"
 
 TIMEOUT_HOME=$(mktemp -d)
-trap 'rm -rf "$TEST_HOME" "$PI_HOME" "$TIMEOUT_HOME"' EXIT
+trap 'rm -rf "$TEST_HOME" "$PI_HOME" "$OPENCODE_HOME" "$CACHE_HOME" "$FRESH_HOME" "$MALFORMED_HOME" "$UNWRITABLE_HOME" "$INTERRUPTED_HOME" "$TIMEOUT_HOME" "$EOF_HOME"' EXIT
 mkdir -p "$TIMEOUT_HOME/.codex/sessions/$(date +%Y/%m/%d)" "$TIMEOUT_HOME/bin"
 cat >"$TIMEOUT_HOME/bin/codex" <<'EOF'
 #!/bin/bash
@@ -627,7 +627,7 @@ done
 EOF
 chmod +x "$TIMEOUT_HOME/bin/codex"
 
-timeout_result=$(HOME="$TIMEOUT_HOME" CODEX_HOME="$TIMEOUT_HOME/.codex" XDG_DATA_HOME="$TIMEOUT_HOME/.local/share" \
+timeout_result=$(HOME="$TIMEOUT_HOME" CODEX_HOME="$TIMEOUT_HOME/.codex" XDG_CACHE_HOME="$TIMEOUT_HOME/.cache" XDG_DATA_HOME="$TIMEOUT_HOME/.local/share" \
   PATH="$TIMEOUT_HOME/bin:$PATH" "$ROOT/bin/omarchy-agent-usage-codex")
 
 [[ $(jq -r '.usageStatusText' <<<"$timeout_result") == "Codex limits unavailable" ]] ||
@@ -635,3 +635,22 @@ timeout_result=$(HOME="$TIMEOUT_HOME" CODEX_HOME="$TIMEOUT_HOME/.codex" XDG_DATA
 [[ $(jq -r '.authHelpText' <<<"$timeout_result") == "account/rateLimits/read timed out after 4s" ]] ||
   fail "Codex collector stores a timeout description, not the bare method name" "$timeout_result"
 pass "Codex collector describes rate-limit RPC timeouts"
+
+# Early app-server exit must not be labeled as a multi-second timeout.
+EOF_HOME=$(mktemp -d)
+trap 'rm -rf "$TEST_HOME" "$PI_HOME" "$OPENCODE_HOME" "$CACHE_HOME" "$FRESH_HOME" "$MALFORMED_HOME" "$UNWRITABLE_HOME" "$INTERRUPTED_HOME" "$TIMEOUT_HOME" "$EOF_HOME"' EXIT
+mkdir -p "$EOF_HOME/.codex/sessions/$(date +%Y/%m/%d)" "$EOF_HOME/bin"
+cat >"$EOF_HOME/bin/codex" <<'EOF'
+#!/bin/bash
+exit 0
+EOF
+chmod +x "$EOF_HOME/bin/codex"
+
+eof_result=$(HOME="$EOF_HOME" CODEX_HOME="$EOF_HOME/.codex" XDG_CACHE_HOME="$EOF_HOME/.cache" XDG_DATA_HOME="$EOF_HOME/.local/share" \
+  PATH="$EOF_HOME/bin:$PATH" "$ROOT/bin/omarchy-agent-usage-codex")
+
+[[ $(jq -r '.usageStatusText' <<<"$eof_result") == "Codex limits unavailable" ]] ||
+  fail "Codex collector reports limits unavailable when app-server exits early" "$eof_result"
+[[ $(jq -r '.authHelpText' <<<"$eof_result") == "codex app-server exited before answering initialize" ]] ||
+  fail "Codex collector stores an early-exit description, not a false timeout" "$eof_result"
+pass "Codex collector describes early app-server exit"
