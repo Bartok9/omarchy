@@ -44,5 +44,6 @@ for format in "${formats[@]}"; do
 done
 find_args+=(")" -printf '%T@\t%p\n')
 
-find "${find_args[@]}" 2>/dev/null | sort -rn | cut -f2- |
+# -L: follow symlink starting points (e.g. ~/Videos -> /mnt/storage/Videos)
+find -L "${find_args[@]}" 2>/dev/null | sort -rn | cut -f2- |
   omarchy-menu-select "$label" -- --width 800 --maxheight 500 "$@"
