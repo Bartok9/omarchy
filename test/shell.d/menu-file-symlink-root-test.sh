@@ -111,3 +111,14 @@ rows=$(cat "$OMARCHY_TEST_ROWS")
 count=$(printf '%s\n' "$rows" | grep -c 'one.webm' || true)
 [[ $count -eq 1 ]] || fail "overlapping roots dedupe rows" "count=$count rows=$rows"
 pass "overlapping roots (symlink to sibling) produce one row"
+
+# Literal duplicate roots (Videos:Videos) → one row
+: >"$OMARCHY_TEST_ROWS"
+unset OMARCHY_TEST_PICK || true
+out=$(
+  omarchy-menu-file "Select video" "$tmp/home/Videos:$tmp/home/Videos" "webm" 2>/dev/null
+) || fail "literal duplicate roots exit 0"
+rows=$(cat "$OMARCHY_TEST_ROWS")
+count=$(printf '%s\n' "$rows" | grep -c 'clip.webm' || true)
+[[ $count -eq 1 ]] || fail "literal duplicate roots dedupe rows" "count=$count rows=$rows"
+pass "literal duplicate roots produce one row"
