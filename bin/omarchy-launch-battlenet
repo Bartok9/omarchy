@@ -37,6 +37,35 @@ if [[ ! -f $LAUNCHER ]]; then
   exit 1
 fi
 
+# umu-run sandboxes each launch, so Battle.net's own single-instance lock never
+# sees an earlier copy. Window-only checks also miss tray-hidden trees that
+# have no Hyprland client. Refuse to stack another Proton tree.
+battlenet_window_address() {
+  command -v hyprctl >/dev/null 2>&1 || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  hyprctl clients -j 2>/dev/null | jq -r '
+    .[]
+    | select((.class | test("battle.?net"; "i")) or (.title | test("battle.?net"; "i")))
+    | .address
+  ' 2>/dev/null | head -n1 || true
+}
+
+battlenet_running() {
+  pgrep -f "umu-run .*${PREFIX}" >/dev/null 2>&1
+}
+
+WINDOW_ADDRESS=$(battlenet_window_address)
+if [[ -n ${WINDOW_ADDRESS:-} ]]; then
+  hyprctl dispatch "hl.dsp.focus({ window = \"address:$WINDOW_ADDRESS\" })" >/dev/null 2>&1 ||
+    hyprctl dispatch focuswindow "address:$WINDOW_ADDRESS" >/dev/null 2>&1 || true
+  exit 0
+fi
+
+if battlenet_running; then
+  echo "Battle.net is already running (no window to focus — it may be minimised to tray)." >&2
+  exit 0
+fi
+
 env_args=(
   WINEPREFIX="$PREFIX"
   PROTONPATH=GE-Proton
