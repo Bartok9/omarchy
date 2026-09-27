@@ -57,7 +57,7 @@ sleep_monitor="$OMARCHY_PATH/bin/omarchy-system-sleep-monitor"
 # ("The operation inhibition has been requested for is already running";
 # OperationInProgress/EINPROGRESS). Restart=always would otherwise log FAILURE
 # every resume. Probe with a throwaway inhibitor, then exec the real one so the
-# long-lived monitor keeps systemd-inhibit as PID 1 and stderr on the journal.
+# long-lived monitor keeps systemd-inhibit as the unit main PID and stderr on the journal.
 attempt=0
 while ! inhibit_err=$(systemd-inhibit --what=sleep --mode=delay --who=Omarchy \
     --why="Lock screen before suspend" true 2>&1); do

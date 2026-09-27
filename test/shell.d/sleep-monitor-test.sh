@@ -151,29 +151,34 @@ OMARCHY_PATH="$mock_omarchy" \
   "$sleep_monitor"
 
 [[ $(<"$lock_log") == "locked" ]] ||
-  fail "sleep monitor retries an EBUSY delay inhibit" "lock log: $(<"$lock_log" 2>/dev/null || true)"
-pass "sleep monitor retries an EBUSY delay inhibit"
+  fail "sleep monitor retries an OperationInProgress delay inhibit" "lock log: $(<"$lock_log" 2>/dev/null || true)"
+pass "sleep monitor retries an OperationInProgress delay inhibit"
 
 [[ $(<"$inhibit_count") == "4" ]] ||
   fail "sleep monitor retries until inhibit succeeds" "attempts: $(<"$inhibit_count")"
 pass "sleep monitor retries until inhibit succeeds"
 
-# Unrelated inhibit failures must still fail the unit.
+# Unrelated inhibit failures must still fail the unit (no retry; one call only).
 cat >"$mock_bin/systemd-inhibit" <<'SH'
 #!/bin/bash
+echo call >>"${INHIBIT_COUNT_FILE:?}"
 echo "Failed to inhibit: Permission denied" >&2
 exit 1
 SH
 chmod +x "$mock_bin/systemd-inhibit"
+rm -f "$inhibit_count"
 
 if OMARCHY_PATH="$mock_omarchy" \
   PATH="$mock_bin:$PATH" \
   PRODUCER_PID_FILE="$producer_pid_file" \
   LOCK_LOG="$lock_log" \
+  INHIBIT_COUNT_FILE="$inhibit_count" \
   "$sleep_monitor" 2>"$tmpdir/inhibit-fail.err"; then
   fail "sleep monitor still fails unrelated inhibit errors"
 fi
 grep -Fq "Permission denied" "$tmpdir/inhibit-fail.err" ||
   fail "sleep monitor reports unrelated inhibit errors"
+[[ $(wc -l <"$inhibit_count") == 1 ]] ||
+  fail "sleep monitor does not retry unrelated inhibit errors" "attempts: $(wc -l <"$inhibit_count")"
 pass "sleep monitor still fails unrelated inhibit errors"
 
