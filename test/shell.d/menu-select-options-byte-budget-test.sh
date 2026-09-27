@@ -17,11 +17,12 @@ exit 99
 STUB
 chmod +x "$stub/omarchy-shell"
 
-# 80 options x ~2000 invalid bytes each → encoded JSON well over 120KB via U+FFFD
+# 80 options x ~1400 invalid bytes: ~112k characters after U+FFFD encode but
+# ~337k bytes — fails under a character-length cap, passes with byte counting.
 opts=()
 i=1
 while [[ $i -le 80 ]]; do
-  name=$(python3 -c 'import sys; sys.stdout.buffer.write(b"n%03d-"%int(sys.argv[1])+b"\xff"*2000)' "$i")
+  name=$(python3 -c 'import sys; sys.stdout.buffer.write(b"n%03d-"%int(sys.argv[1])+b"\xff"*1400)' "$i")
   opts+=("$name")
   i=$((i + 1))
 done
