@@ -155,13 +155,13 @@ SH
 chmod +x "$mock_bin/hyprctl"
 : >"$call_log"
 CALL_LOG="$call_log" PATH="$mock_bin:$ROOT/bin:$PATH" "$ROOT/bin/omarchy-brightness-display" on
-if grep -F "dispatch 'hl.dsp.dpms({ action = \"enable\" })'" "$call_log" >/dev/null; then
+if grep -F "dispatch hl.dsp.dpms({ action = \"enable\" })" "$call_log" >/dev/null; then
   fail "on skips DPMS enable when every panel already reports lit"
 fi
 pass "on skips DPMS enable when every panel already reports lit"
 
 : >"$call_log"
 CALL_LOG="$call_log" PATH="$mock_bin:$ROOT/bin:$PATH" "$ROOT/bin/omarchy-brightness-display" --force on
-grep -F "dispatch 'hl.dsp.dpms({ action = \"enable\" })'" "$call_log" >/dev/null || \
+grep -F "dispatch hl.dsp.dpms({ action = \"enable\" })" "$call_log" >/dev/null || \
   fail "--force on dispatches DPMS enable despite stale dpmsStatus"
 pass "--force on dispatches DPMS enable despite stale dpmsStatus"
