@@ -4,6 +4,8 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/base-test.sh"
 
+require_command jq
+
 test_tmp=$(mktemp -d)
 trap 'rm -rf "$test_tmp"' EXIT
 
@@ -26,28 +28,25 @@ fi
 exit 0
 SH
 
-cat >"$mock_bin/jq" <<'SH'
-#!/bin/bash
-python3 -c 'import json,sys,re
-clients=json.load(sys.stdin)
-pat=re.compile(r"battle.?net", re.I)
-for c in clients:
-    cls=str(c.get("class") or "")
-    title=str(c.get("title") or "")
-    if pat.search(cls) or pat.search(title):
-        print(c.get("address",""))
-        break
-'
-SH
-
+# Real jq is used (require_command jq). pgrep stub returns canned process lines.
 cat >"$mock_bin/pgrep" <<'SH'
 #!/bin/bash
-[[ ${OMARCHY_TEST_PGREP:-0} == 1 ]]
+# Expect -af umu-run (or similar). Emit lines only when OMARCHY_TEST_PGREP_LINES is set.
+if [[ -n ${OMARCHY_TEST_PGREP_LINES:-} ]]; then
+  printf '%s\n' "$OMARCHY_TEST_PGREP_LINES"
+  exit 0
+fi
+exit 1
 SH
 
 cat >"$mock_bin/umu-run" <<'SH'
 #!/bin/bash
 printf 'launch:%s\n' "$*" >>"$OMARCHY_TEST_LOG"
+SH
+
+cat >"$mock_bin/omarchy-notification-send" <<'SH'
+#!/bin/bash
+printf 'notify:%s\n' "$*" >>"$OMARCHY_TEST_LOG"
 SH
 
 chmod +x "$mock_bin"/*
@@ -60,20 +59,37 @@ run_launch() {
 }
 
 export OMARCHY_TEST_CLIENTS_JSON='[]'
-export OMARCHY_TEST_PGREP=0
+unset OMARCHY_TEST_PGREP_LINES
 run_launch
 grep -Fq 'launch:' "$launch_log" || fail "launcher starts umu-run when no Battle.net tree exists"
 pass "launcher starts umu-run when no Battle.net tree exists"
 
 export OMARCHY_TEST_CLIENTS_JSON='[{"class":"battle.net.exe","title":"Battle.net","address":"0xabc"}]'
-export OMARCHY_TEST_PGREP=0
+unset OMARCHY_TEST_PGREP_LINES
 run_launch
 grep -Fq 'focus:' "$launch_log" || fail "launcher focuses an existing Battle.net window"
+grep -Fq 'address:0xabc' "$launch_log" || fail "launcher focuses the Battle.net window address"
 grep -Fq 'launch:' "$launch_log" && fail "launcher must not stack umu-run when a window exists"
 pass "launcher focuses an existing Battle.net window"
 
+# Title-only match must NOT steal focus (browser tab / Ghostty cwd).
+export OMARCHY_TEST_CLIENTS_JSON='[{"class":"chromium","title":"Battle.net - Chromium","address":"0xbad"}]'
+unset OMARCHY_TEST_PGREP_LINES
+run_launch
+grep -Fq 'focus:' "$launch_log" && fail "launcher must not focus title-only Battle.net matches"
+grep -Fq 'launch:' "$launch_log" || fail "launcher starts when only a title match exists"
+pass "launcher ignores title-only Battle.net window matches"
+
 export OMARCHY_TEST_CLIENTS_JSON='[]'
-export OMARCHY_TEST_PGREP=1
+export OMARCHY_TEST_PGREP_LINES="12345 python3 /usr/bin/umu-run $prefix/drive_c/Program Files (x86)/Battle.net/Battle.net Launcher.exe"
 run_launch
 grep -Fq 'launch:' "$launch_log" && fail "launcher must not stack umu-run when a headless tree exists"
+grep -Fq 'notify:' "$launch_log" || fail "launcher notifies when refusing a headless relaunch"
 pass "launcher refuses to stack a headless Battle.net tree"
+
+# Sibling prefix must not count as running.
+export OMARCHY_TEST_CLIENTS_JSON='[]'
+export OMARCHY_TEST_PGREP_LINES="99999 python3 /usr/bin/umu-run ${prefix}-old/drive_c/x"
+run_launch
+grep -Fq 'launch:' "$launch_log" || fail "launcher starts when only a battlenet-old sibling tree exists"
+pass "launcher ignores battlenet-old sibling umu-run trees"
