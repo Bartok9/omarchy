@@ -671,10 +671,12 @@ EOF
 chmod +x "$EPIPE_HOME/bin/codex"
 
 epipe_result=$(HOME="$EPIPE_HOME" CODEX_HOME="$EPIPE_HOME/.codex" XDG_CACHE_HOME="$EPIPE_HOME/.cache" XDG_DATA_HOME="$EPIPE_HOME/.local/share" \
-  PATH="$EPIPE_HOME/bin:$PATH" "$ROOT/bin/omarchy-agent-usage-codex")
+  PATH="$EPIPE_HOME/bin:$PATH" "$ROOT/bin/omarchy-agent-usage-codex" 2>"$EPIPE_HOME/stderr")
 
 [[ $(jq -r '.usageStatusText' <<<"$epipe_result") == "Codex limits unavailable" ]] ||
   fail "Codex collector reports limits unavailable on write-side early exit" "$epipe_result"
 [[ $(jq -r '.authHelpText' <<<"$epipe_result") == "codex app-server exited before answering account/read" ]] ||
   fail "Codex collector maps BrokenPipe on initialized write to early-exit text" "$epipe_result"
+[[ ! -s $EPIPE_HOME/stderr ]] ||
+  fail "Codex collector leaves no finalizer noise on stderr after a write-side exit" "$(cat "$EPIPE_HOME/stderr")"
 pass "Codex collector describes write-side app-server exit"
