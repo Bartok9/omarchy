@@ -20,8 +20,8 @@
 # reporting capture failures.
 #
 # Env: OMARCHY_SCREENRECORD_STOP_TIMEOUT=<seconds> overrides the stop grace period
-# after SIGINT (default 30, clamped 1..600). Non-numeric or oversized digit
-# strings fall back to 30.
+# after SIGINT (default 30, clamped 1..600). Non-ASCII-digit or more-than-five-
+# digit strings fall back to 30; 1..5 ASCII digits are base-10 and clamped.
 
 [[ -f ~/.config/user-dirs.dirs ]] && source ~/.config/user-dirs.dirs
 OUTPUT_DIR="${OMARCHY_SCREENRECORD_DIR:-${XDG_VIDEOS_DIR:-$HOME/Videos}}"
@@ -229,7 +229,9 @@ stop_screenrecording() {
   # Digit-only values still need base-10 forcing and a small upper bound so
   # leading zeros are not octal and huge inputs cannot overflow the *10 bound.
   local timeout_s=${OMARCHY_SCREENRECORD_STOP_TIMEOUT:-30}
-  [[ $timeout_s =~ ^[0-9]{1,5}$ ]] || timeout_s=30
+  # Explicit ASCII digits only: locale [0-9] can match non-ASCII digits and
+  # then 10#$timeout_s aborts the stop path under glibc UTF-8 locales.
+  [[ $timeout_s =~ ^[0123456789]{1,5}$ ]] || timeout_s=30
   timeout_s=$((10#$timeout_s))
   ((timeout_s < 1)) && timeout_s=1
   ((timeout_s > 600)) && timeout_s=600
