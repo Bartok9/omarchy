@@ -5,15 +5,14 @@ set -euo pipefail
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/base-test.sh"
 
 service="$ROOT/default/systemd/user/bt-agent.service"
-grep -F 'ExecCondition=' "$service" >/dev/null && fail "bt-agent ExecCondition skip is terminal across a bluez race"
-grep -F 'ExecStartPre=' "$service" >/dev/null && fail "bt-agent ExecStartPre wait would hold graphical-session.target"
-grep -F 'After=graphical-session.target' "$service" >/dev/null || fail "bt-agent must not hold graphical-session.target open"
-grep -E 'Wants=.*bluetooth\.service|After=.*bluetooth\.service' "$service" >/dev/null && fail "bt-agent must not depend on inert system bluetooth.service from the user manager"
-grep -F 'is-active' "$service" | grep -F 'bluetooth.service' >/dev/null || fail "bt-agent must wait for bluetooth.service inside ExecStart"
-grep -F 'ExecStart=' "$service" | grep -F 'bt-agent' >/dev/null || fail "bt-agent ExecStart must eventually run bt-agent"
+grep -E '^ExecCondition=' "$service" >/dev/null && fail "bt-agent ExecCondition skip is terminal across a bluez race"
+grep -E '^ExecStartPre=' "$service" >/dev/null && fail "bt-agent ExecStartPre wait would hold graphical-session.target"
+grep -E '^After=.*graphical-session\.target' "$service" >/dev/null || fail "bt-agent must not hold graphical-session.target open"
+grep -E '^(Wants|After)=.*bluetooth\.service' "$service" >/dev/null && fail "bt-agent must not depend on inert system bluetooth.service from the user manager"
+grep -E '^ExecStart=.*is-active --quiet bluetooth\.service.*exec /usr/bin/bt-agent ' "$service" >/dev/null || fail "bt-agent must wait for bluetooth.service inside ExecStart, then exec bt-agent"
 pass "bt-agent waits for bluetooth.service without holding the session target"
 
-grep -F 'Restart=on-failure' "$service" >/dev/null || fail "bt-agent lost Restart=on-failure"
+grep -Fx 'Restart=on-failure' "$service" >/dev/null || fail "bt-agent lost Restart=on-failure"
 pass "bt-agent still restarts after runtime failures"
 
 sleep_service="$ROOT/default/systemd/user/omarchy-sleep-lock.service"
