@@ -68,10 +68,10 @@ if [[ $step == "off" ]]; then
   hyprctl dispatch 'hl.dsp.dpms({ action = "disable" })' >/dev/null 2>&1
   exit 0
 elif [[ $step == "on" ]]; then
-  # Skip enable when every enabled monitor already reports lit to avoid an extra
-  # modeset flash (e.g. lock-screen keystroke wake). Resume can still report
-  # stale dpmsStatus=true while the panel is dark (NVIDIA s2idle); --force
-  # bypasses the guard so callers like omarchy-system-wake still dispatch.
+  # Plain on skips enable when every enabled monitor already reports lit (avoids
+  # an extra modeset flash). Stale dpmsStatus=true with a dark panel (NVIDIA
+  # s2idle) still needs a dispatch; omarchy-system-wake (lock-screen input, auth,
+  # cancelled idle) passes --force. Hyprland may still early-return if status is on.
   if (( !force )); then
     hyprctl monitors -j 2>/dev/null | jq -e '[.[] | select(.disabled == false)] | length > 0 and all(.dpmsStatus)' >/dev/null 2>&1 && exit 0
   fi
