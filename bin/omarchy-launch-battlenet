@@ -64,10 +64,12 @@ if [[ -n ${WINDOW_ADDRESS:-} ]]; then
     hyprctl dispatch focuswindow "address:$WINDOW_ADDRESS" >/dev/null 2>&1 || true
 else
   if battlenet_running; then
-    msg="Battle.net is already running (no window to focus — it may be minimised to tray)."
+    msg="Battle.net is already running or still starting (no window to focus)."
     echo "$msg" >&2
+    # Do not tell the user to kill the tree: umu-run exists before any window
+    # while GE-Proton is downloading, and #13344 often has no tray icon.
     omarchy-notification-send -u normal -g "🎮" "Battle.net already running" \
-      "A copy is open with no window (likely tray). Close it from the system tray or kill its umu-run tree before relaunching." \
+      "A copy is already running or still starting, with no window yet. Wait for it, or stop the hidden copy with: pkill -f 'umu-run $HOME/Games/battlenet/'" \
       2>/dev/null || true
   else
     env_args=(

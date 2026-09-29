@@ -31,7 +31,7 @@ SH
 # Real jq is used (require_command jq). pgrep stub returns canned process lines.
 cat >"$mock_bin/pgrep" <<'SH'
 #!/bin/bash
-# Expect -af umu-run (or similar). Emit lines only when OMARCHY_TEST_PGREP_LINES is set.
+[[ $* == "-af umu-run" ]] || exit 2
 if [[ -n ${OMARCHY_TEST_PGREP_LINES:-} ]]; then
   printf '%s\n' "$OMARCHY_TEST_PGREP_LINES"
   exit 0
