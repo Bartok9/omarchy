@@ -5,9 +5,15 @@
 
 dropbox-cli stop 2>/dev/null || true
 omarchy-plugin-disable omarchy.dropbox
-omarchy-pkg-drop dropbox dropbox-cli python-gpgme nautilus-dropbox
 
-# Kept while another app requires it, since pacman would then refuse the whole removal
+if ! omarchy-pkg-drop dropbox dropbox-cli python-gpgme nautilus-dropbox; then
+  echo "Failed to remove Dropbox." >&2
+  exit 1
+fi
+
+# Kept while another app requires it, since pacman would then refuse the whole removal.
+# Only reached when Dropbox itself came off, so a later failure cannot strip the indicator
+# from a Dropbox that is still installed.
 if pacman -Qqtt libappindicator &>/dev/null; then
   omarchy-pkg-drop libappindicator
 fi
