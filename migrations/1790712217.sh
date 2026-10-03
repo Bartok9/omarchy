@@ -8,10 +8,6 @@ echo "Restore missing mise stubs from the canonical install list"
 # the user already ran omarchy-remove-preinstalls (preinstalls-removed).
 
 mise_leaf="${OMARCHY_PATH:-/usr/share/omarchy}/install/user/mise.sh"
-if [[ ! -f $mise_leaf ]]; then
-  echo "mise install list missing; skipping stub restore" >&2
-  exit 0
-fi
 
 if [[ -f $HOME/.local/state/omarchy/preinstalls-removed ]]; then
   echo "preinstalls-removed is set; leaving removed stubs alone"
