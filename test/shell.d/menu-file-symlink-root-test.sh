@@ -122,3 +122,16 @@ rows=$(cat "$OMARCHY_TEST_ROWS")
 count=$(printf '%s\n' "$rows" | grep -c 'clip.webm' || true)
 [[ $count -eq 1 ]] || fail "literal duplicate roots dedupe rows" "count=$count rows=$rows"
 pass "literal duplicate roots produce one row"
+
+# Hard links under different names in one root stay separate rows
+mkdir -p "$tmp/linked"
+printf 'h' >"$tmp/linked/photo.webm"
+ln "$tmp/linked/photo.webm" "$tmp/linked/cover.webm"
+: >"$OMARCHY_TEST_ROWS"
+unset OMARCHY_TEST_PICK || true
+out=$(
+  omarchy-menu-file "Select video" "$tmp/linked" "webm" 2>/dev/null
+) || fail "hard-linked names exit 0"
+rows=$(cat "$OMARCHY_TEST_ROWS")
+[[ $rows == *photo.webm* && $rows == *cover.webm* ]] || fail "hard-linked names stay separate rows" "rows=$rows"
+pass "hard links under different names produce one row each"
