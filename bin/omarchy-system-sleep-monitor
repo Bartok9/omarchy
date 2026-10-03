@@ -68,7 +68,14 @@ stop_inhibit() {
   inhibit_pid=""
   rm -f "$inhibit_err"
 }
-trap 'stop_inhibit; exit 143' TERM INT
+# Die by the signal itself: systemd counts exit 143 as a failed stop.
+stop_on_signal() {
+  stop_inhibit
+  trap - "$1" EXIT
+  kill -"$1" $$
+}
+trap 'stop_on_signal TERM' TERM
+trap 'stop_on_signal INT' INT
 trap stop_inhibit EXIT
 
 # The unit restarts this process after every suspend. logind rejects a new
