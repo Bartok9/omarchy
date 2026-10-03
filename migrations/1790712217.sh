@@ -23,7 +23,9 @@ mise() { :; }
 omarchy-mise-install() {
   local command=${2:-$1}
 
-  if [[ -e $HOME/.local/bin/$command ]]; then
+  # -e is false for a dangling symlink. A user-owned launcher with a missing
+  # target must still be left alone; only a truly absent path gets a stub.
+  if [[ -e $HOME/.local/bin/$command || -L $HOME/.local/bin/$command ]]; then
     return 0
   fi
 
