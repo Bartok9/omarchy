@@ -45,12 +45,13 @@ run
 [[ ! -e $home/.local/bin/hey && ! -L $home/.local/bin/hey ]] || fail "preinstalls-removed does not restore hey"
 pass "removed preinstalls stay removed"
 
-# A missing install list must exit 0, not fail on a top-level return.
-# omarchy-migrate runs migrations with bash -euo pipefail; a top-level return
-# is an error and stops later migrations. exit 1 would mark the migration
-# failed and retry forever on installs that never ship the leaf.
+# A migration that cannot finish must fail and stay pending. A fresh home, so
+# the preinstalls-removed exit cannot pass this on its own.
 missing=$(mktemp -d)
-env HOME="$home" OMARCHY_PATH="$missing" PATH="$ROOT/bin:$PATH" \
-  bash -euo pipefail "$migration"
-pass "a missing mise install list skips instead of failing"
+mkdir -p "$missing/home/.local/bin"
+if env HOME="$missing/home" OMARCHY_PATH="$missing" PATH="$ROOT/bin:$PATH" \
+  bash -euo pipefail "$migration" 2>/dev/null; then
+  fail "a missing mise install list fails the migration"
+fi
+pass "a missing mise install list leaves the migration pending"
 rm -rf "$missing"
