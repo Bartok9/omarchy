@@ -28,18 +28,27 @@ run
 [[ $(cat "$home/.local/bin/gh") == user-owned ]] || fail "an existing gh stub is left alone"
 pass "existing files are not overwritten"
 
+ln -sfn /nonexistent/user-launcher "$home/.local/bin/claude"
+run
+[[ -L $home/.local/bin/claude ]] || fail "a dangling user-owned launcher stays a symlink"
+[[ $(readlink "$home/.local/bin/claude") == /nonexistent/user-launcher ]] || fail "a dangling user-owned launcher is not replaced"
+pass "dangling user-owned launchers are left alone"
+
 [[ -x $home/.local/bin/codex ]] || fail "a second run still leaves stubs that were already restored"
 pass "the restore is idempotent"
 
 touch "$home/.local/state/omarchy/preinstalls-removed"
 rm -f "$home/.local/bin/"*
 run
-[[ ! -e $home/.local/bin/gh ]] || fail "preinstalls-removed does not restore gh"
-[[ ! -e $home/.local/bin/codex ]] || fail "preinstalls-removed does not restore other stubs"
-[[ ! -e $home/.local/bin/hey ]] || fail "preinstalls-removed does not restore hey"
+[[ ! -e $home/.local/bin/gh && ! -L $home/.local/bin/gh ]] || fail "preinstalls-removed does not restore gh"
+[[ ! -e $home/.local/bin/codex && ! -L $home/.local/bin/codex ]] || fail "preinstalls-removed does not restore other stubs"
+[[ ! -e $home/.local/bin/hey && ! -L $home/.local/bin/hey ]] || fail "preinstalls-removed does not restore hey"
 pass "removed preinstalls stay removed"
 
 # A missing install list must exit 0, not fail on a top-level return.
+# omarchy-migrate runs migrations with bash -euo pipefail; a top-level return
+# is an error and stops later migrations. exit 1 would mark the migration
+# failed and retry forever on installs that never ship the leaf.
 missing=$(mktemp -d)
 env HOME="$home" OMARCHY_PATH="$missing" PATH="$ROOT/bin:$PATH" \
   bash -euo pipefail "$migration"
