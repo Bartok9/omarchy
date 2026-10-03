@@ -154,3 +154,26 @@ OMARCHY_PATH="$mock_omarchy" \
   fail "sleep monitor retries an inhibitor rejected as already running" \
     "attempts: $(<"$inhibit_attempts")"
 pass "sleep monitor retries an inhibitor rejected as already running"
+
+# The rejection capture must not swallow the lock helper's warnings, such as a
+# report that the machine is suspending without a secure lock.
+cat >"$mock_omarchy/bin/omarchy-system-sleep-lock" <<'SH'
+#!/bin/bash
+
+echo locked >>"$LOCK_LOG"
+echo "suspending without a secure lock" >&2
+SH
+: >"$lock_log"
+rm -f "$inhibit_attempts" "$producer_pid_file"
+monitor_output=$(
+  OMARCHY_PATH="$mock_omarchy" \
+    PATH="$mock_bin:$PATH" \
+    PRODUCER_PID_FILE="$producer_pid_file" \
+    LOCK_LOG="$lock_log" \
+    INHIBIT_ATTEMPTS="$inhibit_attempts" \
+    "$sleep_monitor" 2>&1
+)
+
+[[ $monitor_output == *"suspending without a secure lock"* ]] ||
+  fail "sleep monitor keeps the lock helper's warnings" "output: $monitor_output"
+pass "sleep monitor keeps the lock helper's warnings"

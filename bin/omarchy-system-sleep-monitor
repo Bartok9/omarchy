@@ -46,6 +46,9 @@ case ${1:-} in
     exit 0
     ;;
   --inhibited)
+    # stderr is the launcher's capture for inhibit rejections, discarded on
+    # success; send the lock helper's warnings to the journal instead.
+    exec 2>&1
     monitor_sleep_events
     exit 0
     ;;
