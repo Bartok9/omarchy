@@ -27,3 +27,11 @@ rg -q 'tag = "-default-opacity"' "$windows_vm_rules" ||
 rg -q 'opacity = "1 1"' "$windows_vm_rules" ||
   fail "Windows VM stays fully opaque"
 pass "Windows VM stays fully opaque"
+
+# dockurr/windows sets the setgid bit on ~/Windows (2700/2777). GNU chmod keeps
+# that bit for 0700 and 00700, so the mode-700 preflight refused every relaunch.
+rg -q 'chmod u=rwx,go=,g-s -- "/proc/\$BASHPID/fd/\$storage_fd"' "$windows_vm_command" ||
+  fail "Windows VM clears setgid when hardening pinned mount sources"
+rg -q 'chmod u=rwx,go=,g-s -- "\$storage" "\$shared"' "$windows_vm_command" ||
+  fail "Windows VM clears setgid on the user shared directory"
+pass "Windows VM clears setgid on the shared directory"
