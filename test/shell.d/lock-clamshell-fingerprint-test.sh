@@ -21,6 +21,11 @@ assert(
   'fingerprint does not start until the lid probe says the reader is reachable'
 )
 
+assert(
+  /onSecureStateChanged:[\s\S]*if \(secure\)[\s\S]*laptopClosedKnown = false[\s\S]*refreshLaptopClosed\(\)[\s\S]*startFingerprint\(\)/.test(service),
+  'a later lock drops the previous lid result before starting fingerprint'
+)
+
 const apply = bodyOf('applyLaptopClosed')
 assert(
   apply.includes('fingerprintRetryTimer.stop()') &&

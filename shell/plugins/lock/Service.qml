@@ -476,6 +476,8 @@ Item {
         root.pendingSessionLock = false
         sessionLockStabilizeTimer.stop()
         pendingSessionLockTimer.stop()
+        // A later lock must not trust the previous lock's lid result.
+        root.laptopClosedKnown = false
         root.refreshLaptopClosed()
         root.startFingerprint()
       }
@@ -700,7 +702,11 @@ Item {
     id: laptopClosedProc
     command: ["bash", "-c", "omarchy-hw-laptop-closed && echo closed || echo open"]
     stdout: StdioCollector { id: laptopClosedOut; waitForEnd: true }
-    onExited: root.applyLaptopClosed(String(laptopClosedOut.text || "").trim() === "closed")
+    onExited: function(exitCode, exitStatus) {
+      // A superseded probe must not publish a stale lid result.
+      if (laptopClosedProc.running) return
+      root.applyLaptopClosed(String(laptopClosedOut.text || "").trim() === "closed")
+    }
   }
 
   // A lid can close after the lock is already up. Recheck while locked so a
