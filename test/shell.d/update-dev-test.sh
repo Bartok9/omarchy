@@ -79,6 +79,13 @@ grep -F "OMARCHY_PATH is not a git checkout: $checkout" "$test_tmp/invalid.err" 
   fail "invalid dev checkout reports the configured path" "$(cat "$test_tmp/invalid.err")"
 pass "invalid dev checkout fails with a useful error"
 
+: >"$git_log"
+if ! env -u OMARCHY_PATH PATH="$stub_bin:$PATH" "$ROOT/bin/omarchy-update-dev" >"$test_tmp/unset.out" 2>"$test_tmp/unset.err"; then
+  fail "unset OMARCHY_PATH should skip like the packaged install" "$(cat "$test_tmp/unset.err")"
+fi
+[[ ! -s $git_log ]] || fail "unset OMARCHY_PATH does not invoke git" "$(cat "$git_log")"
+pass "unset OMARCHY_PATH defaults to the packaged install and skips git"
+
 grep -qE '^ *omarchy-update-dev$' "$ROOT/bin/omarchy-update" ||
   fail "top-level update includes the dev checkout step"
 pass "top-level update includes the dev checkout step"
