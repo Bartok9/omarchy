@@ -89,3 +89,12 @@ pass "unset OMARCHY_PATH defaults to the packaged install and skips git"
 grep -qE '^ *omarchy-update-dev$' "$ROOT/bin/omarchy-update" ||
   fail "top-level update includes the dev checkout step"
 pass "top-level update includes the dev checkout step"
+
+# The source-root check runs in omarchy-update, before omarchy-update-dev.
+# pkexec omarchy-update -y arrives with OMARCHY_PATH unset, so the default
+# has to be established here or the check exits before the helper runs.
+default_line=$(grep -n 'export OMARCHY_PATH="${OMARCHY_PATH:-/usr/share/omarchy}"' "$ROOT/bin/omarchy-update" | head -1 | cut -d: -f1)
+check_line=$(grep -n 'omarchy_security_require_source_root' "$ROOT/bin/omarchy-update" | head -1 | cut -d: -f1)
+[[ -n $default_line && -n $check_line && $default_line -lt $check_line ]] ||
+  fail "update entry point defaults OMARCHY_PATH before the source-root check"
+pass "update entry point defaults OMARCHY_PATH before the source-root check"
