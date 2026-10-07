@@ -346,9 +346,15 @@ ShellRoot {
     return snapshot
   }
 
+  function kindsHas(kinds, kind) {
+    // Instantiator modelData carries kinds as a QVariantList. Array.isArray
+    // is false for those even though they still expose indexOf.
+    return !!kinds && typeof kinds.indexOf === "function"
+      && kinds.indexOf(kind) !== -1
+  }
+
   function manifestHasKind(manifest, kind) {
-    return !!manifest && Array.isArray(manifest.kinds)
-      && manifest.kinds.indexOf(kind) !== -1
+    return !!manifest && shell.kindsHas(manifest.kinds, kind)
   }
 
   function pluginHasBarCapabilities(manifest) {
