@@ -25,12 +25,19 @@ pass "internal actions reject missing root and mismatched sudo identity"
 
 (
   source "$library"
-  printf 'jacob ALL=(ALL) NOPASSWD: ALL\n' >"$test_tmp/etc/sudoers.d/99-omarchy-nopasswd-jacob"
+  legacy=$test_tmp/etc/sudoers.d/99-omarchy-nopasswd-jacob
+  printf 'jacob ALL=(ALL) NOPASSWD: ALL\n' >"$legacy"
   assert_status 2 status_locked 1000
-  [[ -e $test_tmp/etc/sudoers.d/99-omarchy-nopasswd-jacob ]]
+  [[ -e $legacy ]]
+  enable_locked 1000 15
+  TEST_EXPIRED=1 assert_status 2 status_locked 1000
+  [[ -e $legacy && ! -e $test_tmp/etc/sudoers.d/99-omarchy-nopasswd-1000 ]]
+  rm -f -- "$legacy"
+  printf 'other ALL=(ALL) NOTAFTER=20990101000000Z NOPASSWD: ALL\n' >"$test_tmp/etc/sudoers.d/99-omarchy-nopasswd-1001"
+  assert_status 3 status_locked 1000
+  rm -f -- "$test_tmp/etc/sudoers.d/99-omarchy-nopasswd-1001"
 )
 pass "status does not claim inactive while another reserved-prefix rule is live"
-
 
 for status in 1 2 3; do
   : >"$test_tmp/commands"
