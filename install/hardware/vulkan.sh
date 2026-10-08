@@ -13,7 +13,7 @@ declare -A VULKAN_DRIVERS=(
 PACKAGES=()
 
 for vendor in "${!VULKAN_DRIVERS[@]}"; do
-  if lspci | grep -iE "(VGA|Display|3D).*$vendor" > /dev/null; then
+  if lspci | grep -iE "(VGA compatible controller|Display controller|3D controller): .*$vendor" >/dev/null; then
     PACKAGES+=("${VULKAN_DRIVERS[$vendor]}")
   fi
 done
