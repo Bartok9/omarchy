@@ -26,8 +26,10 @@ awk \
   $0 == old_paste { print new_paste; next }
   { print }
 ' "$foot_config" >"$tmp"
-# Keep a recovery copy, then replace the file in place. cat preserves mode;
-# the copy is the restore point if the write is interrupted.
-cp -p "$foot_config" "$foot_config.bak"
+# Unique recovery name so we never overwrite a user's foot.ini.bak.
+# Delete only this copy, and only after the in-place write finishes.
+# cat onto the existing file preserves its mode.
+recovery=$(mktemp "${foot_config}.omarchy-1791576470.XXXXXX")
+cp -p "$foot_config" "$recovery"
 cat "$tmp" >"$foot_config"
-rm -f "$tmp" "$foot_config.bak"
+rm -f "$tmp" "$recovery"
