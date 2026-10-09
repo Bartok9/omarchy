@@ -56,3 +56,31 @@ after=$(wc -c <"$src2")
 [[ $after == "$before" ]] || fail "failed rotate leaves the original intact" "before=$before after=$after"
 magick identify "$src2" >/dev/null || fail "original still decodes after failed rotate"
 pass "failed rotate does not truncate the original"
+
+# Symlink must be followed: rotate the target, leave the link in place.
+link_target="$test_tmp/linked-target.jpg"
+link_path="$test_tmp/linked.jpg"
+magick -size 20x10 xc:green "$link_target"
+ln -s linked-target.jpg "$link_path"
+"$helper" "$link_path"
+link_dims=$(magick identify -format '%wx%h' "$link_target")
+[[ $link_dims == 10x20 ]] || fail "symlink rotate updates the target" "$link_dims"
+[[ -L $link_path ]] || fail "symlink rotate preserves the link"
+pass "symlink rotate follows the target"
+
+# Migration must actually rewrite an existing config, not only contain the new string.
+mig_home="$test_tmp/mig-home"
+mkdir -p "$mig_home/.config/imv"
+cat >"$mig_home/.config/imv/config" <<'CFG'
+# custom binding kept
+<Ctrl+f> = exec echo custom
+<Ctrl+r> = exec mogrify -rotate 90 "$imv_current_file"
+<Ctrl+q> = quit
+CFG
+HOME="$mig_home" bash "$ROOT/migrations/1791577200.sh"
+mig_cfg=$(<"$mig_home/.config/imv/config")
+[[ $mig_cfg == *'omarchy-imv-rotate "$imv_current_file"'* ]] || fail "migration rewrites the live config"
+[[ $mig_cfg != *'mogrify -rotate 90'* ]] || fail "migration removes the unsafe rotate command"
+[[ $mig_cfg == *'<Ctrl+f> = exec echo custom'* ]] || fail "migration preserves unrelated bindings"
+[[ $mig_cfg == *'<Ctrl+q> = quit'* ]] || fail "migration preserves later bindings"
+pass "migration rewrites a live config and keeps custom bindings"
