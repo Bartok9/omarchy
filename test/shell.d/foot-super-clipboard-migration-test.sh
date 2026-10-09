@@ -32,8 +32,10 @@ chmod 644 "$foot_config"
 run_migration
 grep -qxF 'clipboard-copy=Control+Insert Control+Shift+c Mod4+Control+Shift+c XF86Copy' "$foot_config"
 grep -qxF 'clipboard-paste=Shift+Insert Control+Shift+v Mod4+Control+Shift+v XF86Paste' "$foot_config"
-mode=$(stat -f '%Lp' "$foot_config" 2>/dev/null || stat -c '%a' "$foot_config")
+# GNU stat treats -f as a filesystem query, so try -c first.
+mode=$(stat -c '%a' "$foot_config" 2>/dev/null || stat -f '%Lp' "$foot_config")
 [[ $mode == 644 ]]
+[[ ! -e $foot_config.bak ]]
 pass "rewrites the shipped foot clipboard lines and keeps the file mode"
 
 reset_home

@@ -26,5 +26,8 @@ awk \
   $0 == old_paste { print new_paste; next }
   { print }
 ' "$foot_config" >"$tmp"
+# Keep a recovery copy, then replace the file in place. cat preserves mode;
+# the copy is the restore point if the write is interrupted.
+cp -p "$foot_config" "$foot_config.bak"
 cat "$tmp" >"$foot_config"
-rm -f "$tmp"
+rm -f "$tmp" "$foot_config.bak"
