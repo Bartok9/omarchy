@@ -36,7 +36,15 @@ grep -qxF 'clipboard-paste=Shift+Insert Control+Shift+v Mod4+Control+Shift+v XF8
 mode=$(stat -c '%a' "$foot_config" 2>/dev/null || stat -f '%Lp' "$foot_config")
 [[ $mode == 644 ]]
 [[ ! -e $foot_config.bak ]]
+compgen -G "$foot_config.omarchy-1791576470."'*' >/dev/null && exit 1
 pass "rewrites the shipped foot clipboard lines and keeps the file mode"
+
+reset_home
+printf '%s\n' 'clipboard-copy=Control+Insert Control+Shift+c XF86Copy' >"$foot_config"
+printf 'user-backup\n' >"$foot_config.bak"
+run_migration
+[[ $(cat "$foot_config.bak") == 'user-backup' ]]
+pass "leaves an existing foot.ini.bak untouched"
 
 reset_home
 cp "$shipped" "$foot_config"
