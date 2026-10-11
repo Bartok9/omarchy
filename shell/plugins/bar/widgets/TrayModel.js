@@ -38,11 +38,41 @@ function ownedByOmarchy(item, layout) {
     || (layoutHasWidget(layout, "omarchy.dropbox") && itemNamed(item, "dropbox"))
 }
 
+// Electron apps often share one StatusNotifier id (chrome_status_icon_1). Pin and
+// hide must follow the icon the user clicked, so a label is part of the key when
+// the title or tooltip distinguishes it. A stored bare id still matches when that
+// id is not shared with another live item.
+function itemLabel(item) {
+  if (!item) return ""
+  var title = String(item.title || "").replace(/[\r\n]/g, " ").trim()
+  if (title) return title
+  return String(item.tooltipTitle || "").replace(/[\r\n]/g, " ").trim()
+}
+
+function stateKey(item) {
+  var id = String(item && item.id || "")
+  var label = itemLabel(item)
+  if (!id) return label
+  if (!label || label === id) return id
+  return id + "\n" + label
+}
+
+function appliesStored(keys, item, shared) {
+  if (!Array.isArray(keys) || !item) return false
+  var key = stateKey(item)
+  if (keys.indexOf(key) !== -1) return true
+  var id = String(item.id || "")
+  return !shared && !!id && id !== key && keys.indexOf(id) !== -1
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     itemNamed: itemNamed,
     entryId: entryId,
     layoutHasWidget: layoutHasWidget,
-    ownedByOmarchy: ownedByOmarchy
+    ownedByOmarchy: ownedByOmarchy,
+    itemLabel: itemLabel,
+    stateKey: stateKey,
+    appliesStored: appliesStored
   }
 }
