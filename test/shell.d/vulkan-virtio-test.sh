@@ -20,6 +20,12 @@ cat >"$test_tmp/bin/omarchy-pkg-add" <<'SH'
 printf '%s\n' "$*" >"$CALL_LOG"
 SH
 
+# vulkan.sh asks the platform too; answer for the fixture, not the host.
+cat >"$test_tmp/bin/omarchy-hw-aarch64-qualcomm" <<'SH'
+#!/bin/bash
+exit 1
+SH
+
 chmod +x "$test_tmp/bin"/*
 
 run_script() {
