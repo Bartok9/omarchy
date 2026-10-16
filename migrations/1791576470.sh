@@ -1,4 +1,3 @@
-#!/bin/bash
 echo "Accept Super-held copy/paste chords in foot"
 
 # Universal copy/paste (Super+C / Super+V) injects Ctrl+Shift+C/V while Super
