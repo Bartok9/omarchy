@@ -39,6 +39,11 @@ assert(tray.appliesStored(['chrome_status_icon_1'], chromeA, false), 'tray still
 assert(!tray.appliesStored(['chrome_status_icon_1'], chromeA, true), 'tray does not apply a shared bare id to every colliding icon')
 assert(tray.appliesStored([tray.stateKey(chromeB)], chromeB, true), 'tray applies a stored per-icon key while the id is shared')
 assert(!tray.appliesStored([tray.stateKey(chromeA)], chromeB, true), 'tray does not pin the other colliding icon')
+assertDeepEqual(tray.toggleStored(['dropbox'], [], dropbox, false), { keys: [], others: [] }, 'tray unpins an icon pinned under its bare id on the first click')
+assertDeepEqual(tray.toggleStored([], ['dropbox'], dropbox, false), { keys: ['dropbox\nDropbox'], others: [] }, 'tray pins an icon hidden under its bare id and shows it')
+assertDeepEqual(tray.toggleStored(['chrome_status_icon_1'], [], chromeA, true), { keys: [tray.stateKey(chromeA)], others: [] }, 'tray pins one colliding icon in place of a shared bare id')
+assertDeepEqual(tray.toggleStored([tray.stateKey(chromeB)], [], chromeA, true), { keys: [tray.stateKey(chromeB), tray.stateKey(chromeA)], others: [] }, 'tray pins one colliding icon without unpinning the other')
+assertDeepEqual(tray.toggleStored([tray.stateKey(chromeA)], [], chromeA, true), { keys: [], others: [] }, 'tray unpins a colliding icon by its own key')
 
 // The bar outlines as much of the tray section as the sliding drawer shows,
 // never past the drawer.

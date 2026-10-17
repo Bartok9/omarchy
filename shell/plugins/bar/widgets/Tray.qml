@@ -229,43 +229,14 @@ BarWidget {
     root.bar.shell.updateEntryInline(id, { id: id, pinned: pinned, hidden: hidden })
   }
 
-  function dropBareId(keys, item) {
-    var id = String(item && item.id || "")
-    var key = itemStateKey(item)
-    if (!id || id === key) return keys
-    var idx = keys.indexOf(id)
-    if (idx !== -1) keys.splice(idx, 1)
-    return keys
-  }
-
   function togglePin(item) {
-    var key = itemStateKey(item)
-    var p = pinnedIds.slice(), h = hiddenIds.slice()
-    dropBareId(p, item)
-    dropBareId(h, item)
-    var idx = p.indexOf(key)
-    if (idx !== -1) p.splice(idx, 1)
-    else {
-      p.push(key)
-      var hi = h.indexOf(key)
-      if (hi !== -1) h.splice(hi, 1)
-    }
-    persistTrayState(p, h)
+    var next = TrayModel.toggleStored(pinnedIds, hiddenIds, item, idShared(item))
+    persistTrayState(next.keys, next.others)
   }
 
   function toggleHide(item) {
-    var key = itemStateKey(item)
-    var p = pinnedIds.slice(), h = hiddenIds.slice()
-    dropBareId(p, item)
-    dropBareId(h, item)
-    var idx = h.indexOf(key)
-    if (idx !== -1) h.splice(idx, 1)
-    else {
-      h.push(key)
-      var pi = p.indexOf(key)
-      if (pi !== -1) p.splice(pi, 1)
-    }
-    persistTrayState(p, h)
+    var next = TrayModel.toggleStored(hiddenIds, pinnedIds, item, idShared(item))
+    persistTrayState(next.others, next.keys)
   }
 
   visible: pinnedItems.length > 0 || hasDrawer

@@ -91,6 +91,19 @@ function appliesStored(keys, item, shared) {
   return !shared && !!id && id !== key && keys.indexOf(id) !== -1
 }
 
+// Flips an icon's pin or hide by what it shows now, a stored bare id included,
+// and moves it to its own key so the other list never claims it as well.
+function toggleStored(keys, others, item, shared) {
+  var key = stateKey(item)
+  var id = String(item && item.id || "")
+  var on = appliesStored(keys, item, shared)
+  function bare(k) { return id !== key && k === id }
+  keys = keys.filter(function(k) { return k !== key && !bare(k) })
+  others = others.filter(function(k) { return !bare(k) && (on || k !== key) })
+  if (!on) keys.push(key)
+  return { keys: keys, others: others }
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     shownSpan: shownSpan,
@@ -100,6 +113,7 @@ if (typeof module !== "undefined") {
     ownedByOmarchy: ownedByOmarchy,
     itemLabel: itemLabel,
     stateKey: stateKey,
-    appliesStored: appliesStored
+    appliesStored: appliesStored,
+    toggleStored: toggleStored
   }
 }
