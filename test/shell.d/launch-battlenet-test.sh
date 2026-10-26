@@ -54,7 +54,7 @@ chmod +x "$mock_bin"/*
 launch_log="$test_tmp/launch-log"
 run_launch() {
   : >"$launch_log"
-  HOME="$test_tmp" PATH="$mock_bin:$PATH" OMARCHY_TEST_LOG="$launch_log" \
+  HOME="$test_tmp" PATH="$mock_bin:$ROOT/bin:$PATH" OMARCHY_TEST_LOG="$launch_log" \
     bash "$ROOT/bin/omarchy-launch-battlenet" "$@"
 }
 
